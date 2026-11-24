@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
-from .logic import status, transport
+from .logic import status, transport, track_action
 
 mcp = FastMCP("ComposerMind Logic Pro MCP")
 
@@ -23,6 +23,31 @@ def logic_transport(action: str = "toggle_playback", execute: bool = False) -> d
     Do not assume the action has started or stopped playback.
     """
     return transport(action, execute=execute)
+
+
+
+@mcp.tool()
+def logic_create_audio_track(execute: bool = False) -> dict[str, object]:
+    """Create an audio track in the active test project; dry-run by default."""
+    return track_action("create_audio", execute=execute)
+
+
+@mcp.tool()
+def logic_create_instrument_track(execute: bool = False) -> dict[str, object]:
+    """Create a software instrument track; dry-run by default."""
+    return track_action("create_instrument", execute=execute)
+
+
+@mcp.tool()
+def logic_rename_track(name: str, execute: bool = False) -> dict[str, object]:
+    """Rename the selected track; requires explicit execution and visual verification."""
+    return track_action("rename", name, execute=execute)
+
+
+@mcp.tool()
+def logic_select_track(name: str, execute: bool = False) -> dict[str, object]:
+    """Search for a track by name; use unique names and verify selection."""
+    return track_action("select", name, execute=execute)
 
 
 def main() -> None:
