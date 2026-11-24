@@ -37,10 +37,10 @@ def status(
     check = exists or (lambda path: path.is_dir())
     installed = any(check(candidate) for candidate in LOGIC_BUNDLES)
     try:
-        result = runner(["/usr/bin/pgrep", "-fl", r"/Logic Pro(?: X)?\\.app/Contents/MacOS/Logic Pro"])
-        running = bool(result.stdout.strip())
-    except LogicAutomationError:
-        running = False
+        result = runner(["/usr/bin/osascript", "-e", 'application "Logic Pro" is running'])
+        running = result.stdout.strip().lower() == "true"
+    except LogicAutomationError as error:
+        return {"supported": True, "installed": installed, "running": None, "reason": str(error)}
     return {"supported": True, "installed": installed, "running": running}
 
 
