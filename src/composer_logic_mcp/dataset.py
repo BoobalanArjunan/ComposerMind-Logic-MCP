@@ -6,6 +6,8 @@ import tempfile
 import wave
 from pathlib import Path
 
+from .wavewash_bridge import prepare, inspect_file
+
 def audit_wav(path):
     path = Path(path)
     digest = hashlib.sha256()
@@ -44,13 +46,14 @@ def audit_wav(path):
             "rms_dbfs": 20*math.log10(rms) if rms else None,
             "full_scale_samples": clipped, "reasons": reasons}
 
-def audit_dataset(source_dir, manifest_path):
+def audit_dataset(source_dir, manifest_path, wavewash_profile=None):
     source = Path(source_dir).expanduser().resolve()
     manifest = Path(manifest_path).expanduser().resolve()
     if not source.is_dir():
         raise ValueError("Source directory missing")
     if manifest.suffix.lower() != ".json":
         raise ValueError("Manifest must be JSON")
+    ww = prepare(wavewash_profile) if wavewash_profile else None
     rows, seen = [], set()
     for path in sorted(source.iterdir()):
         if not path.is_file() or path.suffix.lower() != ".wav":
@@ -63,12 +66,23 @@ def audit_dataset(source_dir, manifest_path):
                     row["reasons"].append("exact_pcm_duplicate")
                 else:
                     seen.add(row["pcm_sha256"])
-                    row["status"] = "accepted"
+                    if ww is not None:
+                        try:
+                            row["wavewash"] = inspect_file(path, wavewash_profile, ww)
+                            if not row["wavewash"]["passed"]:
+                                row["reasons"].append("wavewash_rejected")
+                        except Exception as exc:
+                            row["wavewash"] = {"profile": wavewash_profile, "error": str(exc)}
+                            row["reasons"].append("wavewash_error")
+                    if not row["reasons"]:
+                        row["status"] = "accepted"
         except (OSError, ValueError, EOFError, wave.Error) as exc:
             row["reasons"] = ["invalid_wav"]
             row["error"] = str(exc)
         rows.append(row)
-    result = {"schema_version": 1, "qa_engine": "native_pcm_v1",
+    result = {"schema_version": 1,
+              "qa_engine": "native_pcm_v1+wavewash_0.2" if ww else "native_pcm_v1",
+              "wavewash_profile": wavewash_profile if ww else None,
               "source": str(source), "total": len(rows),
               "accepted": sum(r["status"] == "accepted" for r in rows),
               "samples": rows}
