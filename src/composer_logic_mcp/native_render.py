@@ -60,10 +60,65 @@ def bounce(filename: str, output_dir: str, *, execute: bool = False) -> dict:
             raise RuntimeError("Cannot activate Logic")
         cmd = Q.kCGEventFlagMaskCommand
         activate()
-        key(11, cmd)
+        # Keep menu invocation and dialog confirmation in one AX transaction.
+        script = '''
+tell application "System Events"
+    tell process "Logic Pro"
+        set frontmost to true
+        if (count of windows) is not 1 then error "Expected one Tracks window"
+        if name of window 1 does not end with " - Tracks" then error "Expected Tracks window"
+        click menu bar item "File" of menu bar 1
+        delay 0.5
+        click menu item "Bounce" of menu "File" of menu bar 1
+        delay 0.5
+        click menu item "Project or Section…" of menu 1 of menu item "Bounce" of menu "File" of menu bar 1
+        repeat 20 times
+            if not frontmost then error "Logic lost focus"
+            if exists (first window whose name begins with "Bounce") then
+                set w to first window whose name begins with "Bounce"
+                if exists button "OK" of w then
+                    if enabled of button "OK" of w then
+                        click button "OK" of w
+                        return "confirmed"
+                    end if
+                end if
+            end if
+            delay 0.5
+        end repeat
+        error "Bounce dialog unavailable"
+    end tell
+end tell
+'''
+        result = subprocess.run(
+            ["/usr/bin/osascript", "-e", script],
+            capture_output=True, text=True, timeout=40
+        )
+        if result.returncode or result.stdout.strip() != "confirmed":
+            raise RuntimeError("Bounce initiation failed: " + result.stderr.strip())
         time.sleep(3)
-        key(36)
-        time.sleep(3)
+        # Fail closed unless a save panel is exposed through Accessibility.
+        save_check = '''
+tell application "System Events"
+    tell process "Logic Pro"
+        if not frontmost then return false
+        repeat with w in windows
+            if exists button "Save" of w then return true
+            if exists button "Bounce" of w then return true
+            repeat with s in sheets of w
+                if exists button "Save" of s then return true
+                if exists button "Bounce" of s then return true
+            end repeat
+        end repeat
+        return false
+    end tell
+end tell
+'''
+        result = subprocess.run(
+            ["/usr/bin/osascript", "-e", save_check],
+            capture_output=True, text=True, timeout=20
+        )
+        if result.returncode or result.stdout.strip() != "true":
+            raise RuntimeError("Save panel not verified; inspect Logic before retry")
         key(0, cmd)
         paste(filename)
         key(5, cmd | Q.kCGEventFlagMaskShift)
