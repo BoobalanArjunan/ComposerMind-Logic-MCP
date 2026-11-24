@@ -65,8 +65,16 @@ def bounce(filename: str, output_dir: str, *, execute: bool = False) -> dict:
 tell application "System Events"
     tell process "Logic Pro"
         set frontmost to true
-        if (count of windows) is not 1 then error "Expected one Tracks window"
-        if name of window 1 does not end with " - Tracks" then error "Expected Tracks window"
+        set tracksWindows to {}
+        repeat with w in windows
+            try
+                if (name of w as text) ends with " - Tracks" then
+                    set end of tracksWindows to w
+                end if
+            end try
+        end repeat
+        if (count of tracksWindows) is 0 then error "Tracks window missing"
+        if exists (first window whose name begins with "Bounce") then error "A Bounce dialog is already open"
         click menu bar item "File" of menu bar 1
         delay 0.5
         click menu item "Bounce" of menu "File" of menu bar 1
