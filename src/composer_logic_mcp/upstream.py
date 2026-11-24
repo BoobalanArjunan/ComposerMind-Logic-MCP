@@ -11,11 +11,11 @@ from pathlib import Path
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-BACKENDS = ("rosa", "monglong", "logician")
+BACKENDS = ("rosa", "monglong", "logician", "rubenknol")
 
 def configuration(backend):
     if backend not in BACKENDS:
-        raise ValueError("Unknown or unlicensed backend")
+        raise ValueError("Unknown backend")
     path = Path(os.environ.get("COMPOSERMIND_BACKENDS", "~/.config/composermind/backends.json")).expanduser()
     config = json.loads(path.read_text())[backend]
     command = Path(config["command"]).expanduser()
