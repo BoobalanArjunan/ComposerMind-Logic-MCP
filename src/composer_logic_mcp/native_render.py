@@ -60,79 +60,10 @@ def bounce(filename: str, output_dir: str, *, execute: bool = False) -> dict:
             raise RuntimeError("Cannot activate Logic")
         cmd = Q.kCGEventFlagMaskCommand
         activate()
-        # Keep menu invocation and dialog confirmation in one AX transaction.
-        script = '''
-tell application "System Events"
-    tell process "Logic Pro"
-        set frontmost to true
-        set tracksWindows to {}
-        repeat with w in windows
-            try
-                if (name of w as text) ends with " - Tracks" then
-                    set end of tracksWindows to w
-                end if
-            end try
-        end repeat
-        if (count of tracksWindows) is 0 then error "Tracks window missing"
-        if exists (first window whose name begins with "Bounce") then error "A Bounce dialog is already open"
-        click menu bar item "File" of menu bar 1
-        delay 0.5
-        click menu item "Bounce" of menu "File" of menu bar 1
-        delay 0.5
-        click menu item "Project or Section…" of menu 1 of menu item "Bounce" of menu "File" of menu bar 1
-        repeat 20 times
-            if not frontmost then error "Logic lost focus"
-            if exists (first window whose name begins with "Bounce") then
-                set w to first window whose name begins with "Bounce"
-                if exists button "OK" of w then
-                    if enabled of button "OK" of w then
-                        click button "OK" of w
-                        return "confirmed"
-                    end if
-                end if
-            end if
-            delay 0.5
-        end repeat
-        error "Bounce dialog unavailable"
-    end tell
-end tell
-'''
-        result = subprocess.run(
-            ["/usr/bin/osascript", "-e", script],
-            capture_output=True, text=True, timeout=40
-        )
-        if result.returncode or result.stdout.strip() != "confirmed":
-            raise RuntimeError("Bounce initiation failed: " + result.stderr.strip())
-        # Logic 11.2 uses a Bounce-titled save panel with a Bounce button.
-        save_check = '''
-tell application "System Events"
-    tell process "Logic Pro"
-        repeat 20 times
-            if not frontmost then error "Logic lost focus"
-            repeat with w in windows
-                try
-                    if (name of w as text) begins with "Bounce" then
-                        if exists button "Bounce" of w then
-                            if enabled of button "Bounce" of w then return "verified"
-                        end if
-                        if exists button "Save" of w then
-                            if enabled of button "Save" of w then return "verified"
-                        end if
-                    end if
-                end try
-            end repeat
-            delay 0.5
-        end repeat
-        error "Bounce save panel not exposed"
-    end tell
-end tell
-'''
-        result = subprocess.run(
-            ["/usr/bin/osascript", "-e", save_check],
-            capture_output=True, text=True, timeout=30
-        )
-        if result.returncode or result.stdout.strip() != "verified":
-            raise RuntimeError("Save panel not verified: " + result.stderr.strip())
+        key(11, cmd)
+        time.sleep(3)
+        key(36)
+        time.sleep(3)
         key(0, cmd)
         paste(filename)
         key(5, cmd | Q.kCGEventFlagMaskShift)
