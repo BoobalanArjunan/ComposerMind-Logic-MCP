@@ -6,6 +6,7 @@ from mcp.server.fastmcp import FastMCP
 
 from .logic import status, transport, track_action
 from .tempo import tempo
+from .native_render import bounce
 from .upstream import upstream
 
 mcp = FastMCP("ComposerMind Logic Pro MCP")
@@ -73,6 +74,14 @@ async def logic_backend_tools(backend: str) -> dict:
 async def logic_backend_call(backend: str, tool: str, arguments: dict, execute: bool = False) -> dict:
     """Invoke an upstream tool with explicit opt-in. Inspect its result; no automatic fallback."""
     return await upstream(backend, tool, arguments, execute)
+
+@mcp.tool()
+def logic_bounce_audio(filename: str, output_dir: str, execute: bool = False) -> dict:
+    """Experimental UI bounce. Requires prepared WAV settings, active Tracks window,
+    no open dialogs, exclusive desktop use. Changes clipboard. Dry-run by default.
+    """
+    return bounce(filename, output_dir, execute=execute)
+
 
 def main() -> None:
     mcp.run(transport="stdio")
