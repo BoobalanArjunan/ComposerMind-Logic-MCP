@@ -58,14 +58,44 @@ def bounce(filename: str, output_dir: str, *, execute: bool = False) -> dict:
                     return
                 time.sleep(.5)
             raise RuntimeError("Cannot activate Logic")
+        def require_button(label):
+            # Fail closed: never send dialog shortcuts into the Tracks window.
+            script = """on run argv
+tell application "System Events"
+tell process "Logic Pro"
+repeat with w in windows
+try
+if exists button (item 1 of argv) of w then return "yes"
+end try
+try
+repeat with s in sheets of w
+if exists button (item 1 of argv) of s then return "yes"
+end repeat
+end try
+end repeat
+end tell
+end tell
+return "no"
+end run"""
+            for _ in range(15):
+                focus()
+                result = subprocess.run(["/usr/bin/osascript", "-e", script, label],
+                                        capture_output=True, text=True, timeout=10)
+                if result.returncode == 0 and result.stdout.strip() == "yes":
+                    return
+                time.sleep(.5)
+            raise RuntimeError(f"Expected dialog button {label!r} not verified; stopped before keyboard shortcuts")
         cmd = Q.kCGEventFlagMaskCommand
         activate()
         key(11, cmd)
         time.sleep(3)
+        require_button('OK')
         key(36)
         time.sleep(3)
+        require_button('Bounce')
         key(0, cmd)
         paste(filename)
+        require_button('Bounce')
         key(5, cmd | Q.kCGEventFlagMaskShift)
         time.sleep(2)
         key(0, cmd)
@@ -73,6 +103,7 @@ def bounce(filename: str, output_dir: str, *, execute: bool = False) -> dict:
         time.sleep(2)
         key(36)
         time.sleep(2)
+        require_button('Bounce')
         if target.exists() or target.is_symlink():
             raise FileExistsError(str(target))
         key(36)
