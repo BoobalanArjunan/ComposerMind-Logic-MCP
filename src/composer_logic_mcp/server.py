@@ -9,6 +9,7 @@ from .tempo import tempo
 from .native_render import bounce
 from .upstream import upstream
 from .dataset import audit_dataset
+from .diversity import analyze_diversity
 
 mcp = FastMCP("ComposerMind Logic Pro MCP")
 
@@ -89,6 +90,12 @@ def logic_dataset_audit(source_dir: str, manifest_path: str, wavewash_profile: s
     """Audit WAV files without Logic; optional WaveWash profile e.g. music_gen."""
     result = audit_dataset(source_dir, manifest_path, wavewash_profile or None)
     return {k: v for k, v in result.items() if k != "samples"}
+
+
+@mcp.tool()
+def logic_dataset_diversity(manifest_path: str, threshold: float = 0.98) -> dict:
+    """Advisory acoustic similarity among accepted WAVs; requires WaveWash extras."""
+    return analyze_diversity(manifest_path, threshold)
 
 
 def main() -> None:
