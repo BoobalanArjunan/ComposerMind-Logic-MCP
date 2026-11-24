@@ -95,21 +95,30 @@ end tell
         )
         if result.returncode or result.stdout.strip() != "confirmed":
             raise RuntimeError("Bounce initiation failed: " + result.stderr.strip())
-        time.sleep(3)
-        # Fail closed unless a save panel is exposed through Accessibility.
+        # The macOS NSSavePanel can be represented as a sheet, a dialog,
+        # or a separate AX window with unnamed controls. An AX button-name
+        # query alone is not reliable here: confirmed by the failed live test.
+        # Require Logic foreground and an actual file-save UI before typing.
+        # CGWindow snapshots are not a reliable way to identify system sheets.
         save_check = '''
 tell application "System Events"
     tell process "Logic Pro"
-        if not frontmost then return false
+        if not frontmost then return "not-frontmost"
+        set names to name of every window
         repeat with w in windows
-            if exists button "Save" of w then return true
-            if exists button "Bounce" of w then return true
-            repeat with s in sheets of w
-                if exists button "Save" of s then return true
-                if exists button "Bounce" of s then return true
-            end repeat
+            try
+                if exists button "Save" of w then return "save-button"
+            end try
+            try
+                repeat with s in sheets of w
+                    if exists button "Save" of s then return "save-sheet"
+                end repeat
+            end try
+            try
+                if (name of w as text) contains "Save" then return "save-window"
+            end try
         end repeat
-        return false
+        return "unverified: " & (names as text)
     end tell
 end tell
 '''
@@ -117,8 +126,11 @@ end tell
             ["/usr/bin/osascript", "-e", save_check],
             capture_output=True, text=True, timeout=20
         )
-        if result.returncode or result.stdout.strip() != "true":
-            raise RuntimeError("Save panel not verified; inspect Logic before retry")
+        if result.returncode or not result.stdout.strip().startswith(("save-button", "save-sheet", "save-window")):
+            raise RuntimeError(
+                "Save panel not verified; inspect Logic before retry. " +
+                (result.stderr.strip() or result.stdout.strip())
+            )
         key(0, cmd)
         paste(filename)
         key(5, cmd | Q.kCGEventFlagMaskShift)
