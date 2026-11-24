@@ -8,6 +8,7 @@ from .logic import status, transport, track_action
 from .tempo import tempo
 from .native_render import bounce
 from .upstream import upstream
+from .dataset import audit_dataset
 
 mcp = FastMCP("ComposerMind Logic Pro MCP")
 
@@ -81,6 +82,13 @@ def logic_bounce_audio(filename: str, output_dir: str, execute: bool = False) ->
     no open dialogs, exclusive desktop use. Changes clipboard. Dry-run by default.
     """
     return bounce(filename, output_dir, execute=execute)
+
+
+@mcp.tool()
+def logic_dataset_audit(source_dir: str, manifest_path: str) -> dict:
+    """Audit existing WAV files and write a JSON manifest without opening Logic."""
+    result = audit_dataset(source_dir, manifest_path)
+    return {k: v for k, v in result.items() if k != "samples"}
 
 
 def main() -> None:
