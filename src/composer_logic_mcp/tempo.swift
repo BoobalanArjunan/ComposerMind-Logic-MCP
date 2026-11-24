@@ -59,7 +59,16 @@ for i in 0...100 {
     let delta = goal - bpm
     if abs(delta) < 0.01 { report(bpm, i); exit(0) }
     if i == 100 { break }
-    guard app.isActive else { fail("Logic lost focus") }
+    if !app.isActive {
+        app.unhide()
+        app.activate(options: [])
+        for _ in 1...10 {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+            if app.isActive { break }
+        }
+    }
+    guard app.isActive else { fail("Logic lost focus after activation retries") }
+    guard abs(readBPM() - bpm) < 0.01 else { fail("Tempo changed during focus recovery; retry command") }
     let result: AXError
     if abs(delta) >= 10 {
         result = AXUIElementPerformAction(tempo, (delta > 0 ? kAXIncrementAction : kAXDecrementAction) as CFString)
