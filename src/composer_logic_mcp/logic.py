@@ -74,3 +74,45 @@ def transport(
         "verified_state": None,
         "note": "Space sent. Transport state is not verified; keyboard mapping may vary.",
     }
+
+
+def track_action(
+    action: str,
+    name: str = "",
+    *,
+    execute: bool = False,
+    system: Callable[[], str] = platform.system,
+    runner: Callable[[list[str]], subprocess.CompletedProcess[str]] = _run_command,
+) -> dict[str, object]:
+    """Dispatch a validated Track menu command; UI outcome requires readback."""
+    menus = {
+        "create_audio": "New Audio Track",
+        "create_instrument": "New Software Instrument Track",
+        "rename": "Rename Track",
+        "select": "Search and Select Track…",
+    }
+    if action not in menus:
+        raise ValueError("Unsupported track action")
+    named = action in {"rename", "select"}
+    if named and (not name.strip() or len(name) > 200 or any(ord(c) < 32 or ord(c) > 126 for c in name)):
+        raise ValueError("Use a nonempty printable ASCII track name of at most 200 characters")
+    if not execute:
+        return {"executed": False, "action": action, "name": name, "note": "Dry run"}
+    if system() != "Darwin":
+        raise LogicAutomationError("Logic automation requires macOS")
+    script = (
+        'on run argv\n'
+        'tell application "System Events"\n'
+        'tell process "Logic Pro"\n'
+        'set frontmost to true\n'
+        'delay 0.5\n'
+        'if not (enabled of menu item (item 1 of argv) of menu "Track" of menu bar 1) then error "Track command disabled"\n'
+        'click menu item (item 1 of argv) of menu "Track" of menu bar 1\n'
+        'delay 0.5\n'
+    )
+    if named:
+        script += 'keystroke (item 2 of argv)\ndelay 1\nkey code 36\n'
+    script += 'delay 1\nend tell\nend tell\nend run\n'
+    runner(["/usr/bin/osascript", "-e", script, "--", menus[action], name])
+    return {"executed": True, "action": action, "name": name,
+            "verified_state": None, "note": "Command dispatched; verify track state in Logic."}
