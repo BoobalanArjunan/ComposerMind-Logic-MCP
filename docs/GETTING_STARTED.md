@@ -4,7 +4,7 @@ A local-first Model Context Protocol (MCP) server for cautious, observable autom
 
 ## Status
 
-**Early prototype — not yet tested inside Logic Pro.** The first release contains read-only diagnostics, an explicitly opted-in playback toggle and dry-run mode. The prototype does **not** yet implement AU parameter edits, track creation, MIDI authoring or bounce automation.
+**v0.1.0 — locally validated prototype.** Maintainer reports 8 passing unit tests, visible direct Python playback toggle, successful Claude Code connection health check and independent Python MCP status call. Track creation, AU edits and rendering are not implemented. See the [roadmap](ROADMAP.md) for the planned autonomous dataset MVP.
 
 ## Requirements
 
@@ -22,7 +22,7 @@ git switch feat/logic-mcp-prototype
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
-pytest -q
+PYTHONPATH="$PWD/src" python -m pytest -q
 ```
 
 ## Run
@@ -56,12 +56,23 @@ Test only in a disposable Logic project, after saving your work. The user may ha
 
 ## Roadmap
 
-1. Verify diagnostics and keyboard toggle on the M1 Max.
-2. Add a Swift Accessibility bridge with read-back checks and transport state verification.
-3. Implement observable track creation, naming, audio import and undo behavior.
-4. Explore AU plugin identification and parameter editing, subject to accessibility exposure.
-5. Add bounce verification, deterministic dataset recipes, batch job recovery and WaveWash QA.
+See the [one-day MVP and research roadmap](ROADMAP.md). The target is a quality-aware dataset generator using a single verified synth/effect workflow before expanding plugin coverage.
 
 ## License
 
 MIT. Third-party libraries, apps and AU plugins are licensed separately.
+
+## Tested local startup
+
+```bash
+PYTHONPATH="$PWD/src" "$PWD/.venv/bin/python" -m composer_logic_mcp.server
+```
+
+MCP SDK 1.x is required. A silent server waits for stdio requests. Stop with Ctrl+C before registering Claude Code:
+
+```bash
+claude mcp add --scope user composer-logic -- /usr/bin/env "PYTHONPATH=$PWD/src" "$PWD/.venv/bin/python" -m composer_logic_mcp.server
+claude mcp list
+```
+
+Claude login is optional for independent Python MCP testing.
