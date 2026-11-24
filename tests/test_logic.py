@@ -68,3 +68,39 @@ def test_status_uses_applescript():
         assert argv == ["/usr/bin/osascript", "-e", 'application "Logic Pro" is running']
         return completed("true\n")
     assert status(system=lambda: "Darwin", runner=run)["running"] is True
+
+
+from composer_logic_mcp.logic import track_action
+
+
+@pytest.mark.parametrize("action,name,menu", [
+    ("create_audio", "", "New Audio Track"),
+    ("create_instrument", "", "New Software Instrument Track"),
+    ("rename", "Test-01", "Rename Track"),
+    ("select", "Test-01", "Search and Select Track…"),
+])
+def test_track_dispatch(action, name, menu):
+    commands = []
+    def run(argv):
+        commands.append(argv)
+        return completed()
+    assert not track_action(action, name, runner=run)["executed"]
+    assert not commands
+    result = track_action(action, name, execute=True, system=lambda: "Darwin", runner=run)
+    assert result["executed"] and result["verified_state"] is None
+    assert commands[0][-2:] == [menu, name]
+
+
+def test_track_invalid_name():
+    with pytest.raises(ValueError):
+        track_action("rename", "")
+
+
+def test_track_non_mac():
+    with pytest.raises(LogicAutomationError):
+        track_action("create_audio", execute=True, system=lambda: "Linux")
+
+
+def test_track_invalid_action():
+    with pytest.raises(ValueError):
+        track_action("delete")
