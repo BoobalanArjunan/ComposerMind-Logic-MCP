@@ -95,42 +95,36 @@ end tell
         )
         if result.returncode or result.stdout.strip() != "confirmed":
             raise RuntimeError("Bounce initiation failed: " + result.stderr.strip())
-        # The macOS NSSavePanel can be represented as a sheet, a dialog,
-        # or a separate AX window with unnamed controls. An AX button-name
-        # query alone is not reliable here: confirmed by the failed live test.
-        # Require Logic foreground and an actual file-save UI before typing.
-        # CGWindow snapshots are not a reliable way to identify system sheets.
+        # Logic 11.2 uses a Bounce-titled save panel with a Bounce button.
         save_check = '''
 tell application "System Events"
     tell process "Logic Pro"
-        if not frontmost then return "not-frontmost"
-        set names to name of every window
-        repeat with w in windows
-            try
-                if exists button "Save" of w then return "save-button"
-            end try
-            try
-                repeat with s in sheets of w
-                    if exists button "Save" of s then return "save-sheet"
-                end repeat
-            end try
-            try
-                if (name of w as text) contains "Save" then return "save-window"
-            end try
+        repeat 20 times
+            if not frontmost then error "Logic lost focus"
+            repeat with w in windows
+                try
+                    if (name of w as text) begins with "Bounce" then
+                        if exists button "Bounce" of w then
+                            if enabled of button "Bounce" of w then return "verified"
+                        end if
+                        if exists button "Save" of w then
+                            if enabled of button "Save" of w then return "verified"
+                        end if
+                    end if
+                end try
+            end repeat
+            delay 0.5
         end repeat
-        return "unverified: " & (names as text)
+        error "Bounce save panel not exposed"
     end tell
 end tell
 '''
         result = subprocess.run(
             ["/usr/bin/osascript", "-e", save_check],
-            capture_output=True, text=True, timeout=20
+            capture_output=True, text=True, timeout=30
         )
-        if result.returncode or not result.stdout.strip().startswith(("save-button", "save-sheet", "save-window")):
-            raise RuntimeError(
-                "Save panel not verified; inspect Logic before retry. " +
-                (result.stderr.strip() or result.stdout.strip())
-            )
+        if result.returncode or result.stdout.strip() != "verified":
+            raise RuntimeError("Save panel not verified: " + result.stderr.strip())
         key(0, cmd)
         paste(filename)
         key(5, cmd | Q.kCGEventFlagMaskShift)
