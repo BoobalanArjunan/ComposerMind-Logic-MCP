@@ -9,7 +9,7 @@ description = "Local-first MCP automation prototype for Apple Logic Pro"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-dependencies = ["mcp>=1.0,<3"]
+dependencies = ["mcp>=1.0,<2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]
