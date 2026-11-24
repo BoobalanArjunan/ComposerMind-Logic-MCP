@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "composer-logic-mcp"
+version = "0.1.0"
+description = "Local-first MCP automation prototype for Apple Logic Pro"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = ["mcp>=1.0,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+wavewash = ["wavewash>=0.2,<0.3"]
+
+[project.scripts]
+composer-logic-mcp = "composer_logic_mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+composer_logic_mcp = ["*.swift"]
