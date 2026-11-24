@@ -85,9 +85,9 @@ def logic_bounce_audio(filename: str, output_dir: str, execute: bool = False) ->
 
 
 @mcp.tool()
-def logic_dataset_audit(source_dir: str, manifest_path: str) -> dict:
-    """Audit existing WAV files and write a JSON manifest without opening Logic."""
-    result = audit_dataset(source_dir, manifest_path)
+def logic_dataset_audit(source_dir: str, manifest_path: str, wavewash_profile: str = "") -> dict:
+    """Audit WAV files without Logic; optional WaveWash profile e.g. music_gen."""
+    result = audit_dataset(source_dir, manifest_path, wavewash_profile or None)
     return {k: v for k, v in result.items() if k != "samples"}
 
 
