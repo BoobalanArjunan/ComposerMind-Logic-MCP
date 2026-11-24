@@ -58,44 +58,53 @@ def bounce(filename: str, output_dir: str, *, execute: bool = False) -> dict:
                     return
                 time.sleep(.5)
             raise RuntimeError("Cannot activate Logic")
-        def require_button(label):
-            # Fail closed: never send dialog shortcuts into the Tracks window.
-            script = """on run argv
-tell application "System Events"
+        def require_bounce_save():
+            # Vision requires several simultaneous anchors; no blind shortcuts.
+            from .vision_state import inspect_screen
+            for _ in range(5):
+                focus()
+                state = inspect_screen()
+                if state["state"] == "bounce_save":
+                    return
+                time.sleep(.7)
+            raise RuntimeError("Vision did not confirm Bounce Save dialog; stopped safely")
+        def require_bounce_settings():
+            # The initial bounce-options dialog is not yet covered by Vision.
+            # Keep the pre-existing Accessibility button check limited to OK.
+            script = """tell application "System Events"
 tell process "Logic Pro"
 repeat with w in windows
 try
-if exists button (item 1 of argv) of w then return "yes"
+if exists button "OK" of w then return "yes"
 end try
 try
 repeat with s in sheets of w
-if exists button (item 1 of argv) of s then return "yes"
+if exists button "OK" of s then return "yes"
 end repeat
 end try
 end repeat
 end tell
 end tell
-return "no"
-end run"""
+return "no" """
             for _ in range(15):
                 focus()
-                result = subprocess.run(["/usr/bin/osascript", "-e", script, label],
+                result = subprocess.run(["/usr/bin/osascript", "-e", script],
                                         capture_output=True, text=True, timeout=10)
                 if result.returncode == 0 and result.stdout.strip() == "yes":
                     return
                 time.sleep(.5)
-            raise RuntimeError(f"Expected dialog button {label!r} not verified; stopped before keyboard shortcuts")
+            raise RuntimeError("Bounce settings OK button not verified; stopped safely")
         cmd = Q.kCGEventFlagMaskCommand
         activate()
         key(11, cmd)
         time.sleep(3)
-        require_button('OK')
+        require_bounce_settings()
         key(36)
         time.sleep(3)
-        require_button('Bounce')
+        require_bounce_save()
         key(0, cmd)
         paste(filename)
-        require_button('Bounce')
+        require_bounce_save()
         key(5, cmd | Q.kCGEventFlagMaskShift)
         time.sleep(2)
         key(0, cmd)
@@ -103,7 +112,7 @@ end run"""
         time.sleep(2)
         key(36)
         time.sleep(2)
-        require_button('Bounce')
+        require_bounce_save()
         if target.exists() or target.is_symlink():
             raise FileExistsError(str(target))
         key(36)
