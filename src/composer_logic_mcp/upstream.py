@@ -12,8 +12,11 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 BACKENDS = ("rosa", "monglong", "logician", "rubenknol")
+ALIASES = {"cm_plugincore": "rosa", "cm_studiocore": "monglong",
+           "cm_rendercore": "logician", "cm_midicore": "rubenknol"}
 
 def configuration(backend):
+    backend = ALIASES.get(backend, backend)
     if backend not in BACKENDS:
         raise ValueError("Unknown backend")
     path = Path(os.environ.get("COMPOSERMIND_BACKENDS", "~/.config/composermind/backends.json")).expanduser()
