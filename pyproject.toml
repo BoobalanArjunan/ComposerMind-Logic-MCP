@@ -7,7 +7,7 @@ name = "composer-logic-mcp"
 version = "0.1.0"
 description = "Local-first MCP automation prototype for Apple Logic Pro"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 dependencies = ["mcp>=1.0,<2"]
 
