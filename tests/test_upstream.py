@@ -10,7 +10,7 @@ def test_dry_run():
 
 def test_unknown_backend():
     with pytest.raises(ValueError):
-        configuration("rubenknol")
+        configuration("unknown")
 
 def test_config(tmp_path, monkeypatch):
     path = tmp_path / "backends.json"
@@ -24,3 +24,10 @@ def test_relative_command(tmp_path, monkeypatch):
     monkeypatch.setenv("COMPOSERMIND_BACKENDS", str(path))
     with pytest.raises(ValueError):
         configuration("rosa")
+
+
+def test_rubenknol_config(tmp_path, monkeypatch):
+    path = tmp_path / "backends.json"
+    path.write_text(json.dumps({"rubenknol": {"command": sys.executable, "args": ["worker.py"]}}))
+    monkeypatch.setenv("COMPOSERMIND_BACKENDS", str(path))
+    assert configuration("rubenknol").args == ["worker.py"]
