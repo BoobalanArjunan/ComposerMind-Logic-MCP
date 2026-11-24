@@ -24,7 +24,7 @@ def test_status_mac_installed_running():
     answer = status(
         system=lambda: "Darwin",
         exists=lambda path: path.name == "Logic Pro.app",
-        runner=lambda argv: completed("123 /Applications/Logic Pro.app/Contents/MacOS/Logic Pro"),
+        runner=lambda argv: completed("true\n"),
     )
     assert answer["installed"] is True
     assert answer["running"] is True
@@ -55,3 +55,16 @@ def test_transport_executes_explicit_toggle():
     assert response["executed"] is True
     assert response["verified_state"] is None
     assert commands[0][:2] == ["/usr/bin/osascript", "-e"]
+
+
+def test_status_mac_not_running():
+    answer = status(system=lambda: "Darwin", exists=lambda path: True,
+                    runner=lambda argv: completed("false\n"))
+    assert answer["running"] is False
+
+
+def test_status_uses_applescript():
+    def run(argv):
+        assert argv == ["/usr/bin/osascript", "-e", 'application "Logic Pro" is running']
+        return completed("true\n")
+    assert status(system=lambda: "Darwin", runner=run)["running"] is True
