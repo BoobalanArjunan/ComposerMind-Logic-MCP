@@ -96,7 +96,14 @@ return "no" """
             raise RuntimeError("Bounce settings OK button not verified; stopped safely")
         cmd = Q.kCGEventFlagMaskCommand
         activate()
-        key(11, cmd)
+        focus()
+        script = """tell application "System Events"
+tell process "Logic Pro"
+click menu item "Project or Section…" of menu 1 of menu item "Bounce" of menu 1 of menu bar item "File" of menu bar 1
+end tell
+end tell"""
+        subprocess.run(["/usr/bin/osascript", "-e", script],
+                       capture_output=True, text=True, timeout=15, check=True)
         time.sleep(3)
         require_bounce_settings()
         key(36)
