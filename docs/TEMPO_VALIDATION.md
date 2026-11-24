@@ -6,4 +6,6 @@ Hybrid controller: 131 to 140 in 9 fine steps; 140 to 115 in 7 steps (2 coarse, 
 
 The integrated bridge accepts integer targets 40–240 as a conservative implementation limit, defaults to dry-run for writes, and stops on failed readback or non-convergence. Validate in a disposable project. A failed write may leave a partially changed tempo. No claim of universal AU parameter compatibility.
 
-Next: pull branch, run pytest, test packaged get/set tools locally and via MCP, then MIDI import.
+Integrated results (user-run on macOS): `python -m pytest -q` returned **22 passed in 0.02s**. Packaged `logic_get_tempo()` read **115 BPM**. Initial packaged `logic_set_tempo(128, execute=True)` failed with `Logic lost focus`; updated Swift bridge in commit `93b98b8` performs bounded focus reactivation and checks tempo consistency. After pulling this commit, user executed `logic_set_tempo(128, execute=True)` successfully: `{'initial_bpm': 115.0, 'bpm': 128.0, 'iterations': 4, 'executed': True, 'verified': True}`. This validates the Python-to-Swift integration for the target BPM 128 on this system. The MCP protocol endpoint for these new tools still needs independent end-to-end client testing.
+
+Next: validate the MCP protocol tools from an MCP client, then implement MIDI import and project management.
