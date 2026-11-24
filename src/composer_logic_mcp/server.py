@@ -5,6 +5,7 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 
 from .logic import status, transport, track_action
+from .tempo import tempo
 
 mcp = FastMCP("ComposerMind Logic Pro MCP")
 
@@ -48,6 +49,18 @@ def logic_rename_track(name: str, execute: bool = False) -> dict[str, object]:
 def logic_select_track(name: str, execute: bool = False) -> dict[str, object]:
     """Search for a track by name; use unique names and verify selection."""
     return track_action("select", name, execute=execute)
+
+
+@mcp.tool()
+def logic_get_tempo() -> dict:
+    """Read the active Logic project tempo; may activate Logic."""
+    return tempo()
+
+
+@mcp.tool()
+def logic_set_tempo(bpm: int, execute: bool = False) -> dict:
+    """Set integer BPM (40–240) with readback; dry-run by default."""
+    return tempo(bpm, execute=execute)
 
 
 def main() -> None:
